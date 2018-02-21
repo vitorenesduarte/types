@@ -144,7 +144,8 @@ merge({?TYPE, {CType, GMap1}}, {?TYPE, {CType, GMap2}}) ->
 %% @doc Equality for `state_gmap()'.
 -spec equal(state_gmap(), state_gmap()) -> boolean().
 equal({?TYPE, {CType, GMap1}}, {?TYPE, {CType, GMap2}}) ->
-    dict:to_list(GMap1) == dict:to_list(GMap2).
+    Fun = fun({Type, _}=V1, {Type, _}=V2) -> Type:equal(V1, V2) end,
+    dict_ext:equal(GMap1, GMap2, Fun).
 
 %% @doc Check if a `state_gmap()' is bottom
 -spec is_bottom(state_gmap()) -> boolean().

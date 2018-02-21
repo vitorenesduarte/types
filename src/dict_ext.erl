@@ -20,7 +20,32 @@
 -module(dict_ext).
 -author("Vitor Enes <vitorenesduarte@gmail.com>").
 
--export([fetch/3]).
+-export([equal/3,
+         fetch/3]).
+
+-spec equal(dict:dict(), dict:dict(), function()) ->
+    boolean().
+equal(Dict1, Dict2, Fun) ->
+    case dict:size(Dict1) == dict:size(Dict2) of
+        true ->
+            %% check all entries are the same
+            do_equal(dict:to_list(Dict1), Dict2, Fun);
+        false ->
+            false
+    end.
+
+do_equal([], _Dict2, _Fun) ->
+    true;
+do_equal([{K, V1}|T], Dict2, Fun) ->
+    case dict:find(K, Dict2) of
+        {ok, V2} ->
+            case Fun(V1, V2) of
+                true -> do_equal(T, Dict2, Fun);
+                false -> false
+            end;
+        error ->
+            false
+    end.
 
 %% @doc
 fetch(K, M, Default) ->
