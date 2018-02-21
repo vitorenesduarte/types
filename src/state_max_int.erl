@@ -105,15 +105,15 @@ is_inflation({?TYPE, Value1}, {?TYPE, Value2}) ->
 
 %% @doc Check for strict inflation.
 -spec is_strict_inflation(state_max_int(), state_max_int()) -> boolean().
-is_strict_inflation({?TYPE, _}=CRDT1, {?TYPE, _}=CRDT2) ->
-    state_type:is_strict_inflation(CRDT1, CRDT2).
+is_strict_inflation({?TYPE, Value1}, {?TYPE, Value2}) ->
+    Value1 < Value2.
 
 %% @doc Check for irreducible strict inflation.
 -spec irreducible_is_strict_inflation(state_max_int(),
                                       state_type:digest()) ->
     boolean().
-irreducible_is_strict_inflation({?TYPE, _}=A, B) ->
-    state_type:irreducible_is_strict_inflation(A, B).
+irreducible_is_strict_inflation(A, {state, B}) ->
+    is_strict_inflation(A, B).
 
 -spec digest(state_max_int()) -> state_type:digest().
 digest({?TYPE, _}=CRDT) ->
