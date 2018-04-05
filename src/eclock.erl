@@ -1,0 +1,192 @@
+%% -------------------------------------------------------------------
+%%
+%% Copyright (c) 2017 IMDEA Software Institute.  All Rights Reserved.
+%%
+%% This file is provided to you under the Apache License,
+%% Version 2.0 (the "License"); you may not use this file
+%% except in compliance with the License.  You may obtain
+%% a copy of the License at
+%%
+%%   http://www.apache.org/licenses/LICENSE-2.0
+%%
+%% Unless required by applicable law or agreed to in writing,
+%% software distributed under the License is distributed on an
+%% "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+%% KIND, either express or implied.  See the License for the
+%% specific language governing permissions and limitations
+%% under the License.
+%%
+%% -------------------------------------------------------------------
+
+%% @doc Exception Clock.
+
+-module(eclock).
+-author("Vitor Enes <vitorenesduarte@gmail.com>").
+
+-export([new/0,
+         from_dot_set/1,
+         dots/1,
+         next_dot/2,
+         add_dot/2,
+         is_element/2,
+         union/2,
+         subtract/2]).
+
+-export_type([eclock/0]).
+
+%% exception clock
+-type dot_set() :: dot_store:dot_set().
+-type dot() :: dot_store:dot().
+-type sn() :: dot_store:dot_sequence().
+-type per_node() :: {sn(), ordsets:ordset(sn())}.
+-type actor() :: dot_store:dot_actor().
+-type eclock() :: orddict:orddict(actor(), per_node()).
+
+%% @private
+bottom() ->
+    {0, []}.
+
+%% @doc Create an empty Exception Clock.
+-spec new() -> eclock().
+new() ->
+    orddict:new().
+
+%% @doc Create an Exception Clock from a dot set.
+-spec from_dot_set(dot_set()) -> eclock().
+from_dot_set(DotSet) ->
+    dot_set:fold(
+        fun(Dot, EClock) ->
+            eclock:add_dot(Dot, EClock)
+        end,
+        eclock:new(),
+        DotSet
+    ).
+
+%% @doc Return a dot set, given an Exception Clock.
+-spec dots(eclock()) -> dot_set().
+dots(EClock) ->
+    orddict:fold(
+        fun(Id, {Sequence, Exceptions}, DotSet0) ->
+
+            %% add all dots from 1 to Sequence
+            %% that are not exceptions
+            lists:foldl(
+                fun(S, DotSet1) ->
+                    Dot = {Id, S},
+                    dot_set:add_dot(Dot, DotSet1)
+                end,
+                DotSet0,
+                lists:seq(1, Sequence) -- Exceptions
+            )
+        end,
+        dot_set:new(),
+        EClock
+    ).
+
+%% @doc Generate the next dot.
+-spec next_dot(actor(), eclock()) -> dot().
+next_dot(Id, EClock0) ->
+    %% retrieve current value and exceptions
+    {Sequence, _Exceptions} = orddict_ext:fetch(Id, EClock0, bottom()),
+
+    %% create next dot
+    {Id, Sequence + 1}.
+
+%% @doc Add a dot to the Exception Clock.
+-spec add_dot(dot(), eclock()) -> eclock().
+add_dot({Id, Sequence}, EClock) ->
+    {CurrentValue, Exceptions} = orddict_ext:fetch(Id, EClock, bottom()),
+    NextEntry = case Sequence >= CurrentValue + 1 of
+        true ->
+            %% add all possible exceptions
+            NewExceptions = lists:foldl(
+                fun(S, Acc) ->
+                    ordsets:add_element(S, Acc)
+                end,
+                Exceptions,
+                lists:seq(CurrentValue + 1, Sequence - 1)
+            ),
+
+            %% update vector entry
+            %% and possible new exceptions
+            {Sequence, NewExceptions};
+        false ->
+
+            %% otherwise remove from exceptions
+            %% (in case it's there)
+            NewExceptions = ordsets:del_element(Sequence,
+                                                Exceptions),
+            {CurrentValue, NewExceptions}
+    end,
+
+    orddict:store(Id, NextEntry, EClock).
+
+%% @doc Check if a dot belongs to the Exception Clock.
+-spec is_element(dot(), eclock()) -> boolean().
+is_element({Id, Sequence}, EClock) ->
+    {Current, Exceptions} = orddict_ext:fetch(Id, EClock, bottom()),
+    Sequence =< Current andalso
+    not ordsets:is_element(Sequence, Exceptions).
+
+%% @doc Union of two Exception Clocks.
+-spec union(eclock(), eclock()) -> eclock().
+union(EClockA, EClockB) ->
+    orddict:merge(
+        fun(_Id, {SequenceA, ExceptionsA},
+                 {SequenceB, ExceptionsB}) ->
+
+            Sequence = max(SequenceA, SequenceB),
+
+            %% it's still an exception if
+            %% it is an exception in the other clock
+            %% or if the other clock max entry is less
+            %% than the sequence of this exception
+            ExA = ordsets:filter(
+                fun(S) ->
+                    S > SequenceB orelse
+                    ordsets:is_element(S, ExceptionsB)
+                end,
+                ExceptionsA
+            ),
+
+            ExB = ordsets:filter(
+                fun(S) ->
+                    S > SequenceA orelse
+                    ordsets:is_element(S, ExceptionsA)
+                end,
+                ExceptionsB
+            ),
+
+            Exceptions = ordsets:union(ExA, ExB),
+
+            {Sequence, Exceptions}
+        end,
+        EClockA,
+        EClockB
+    ).
+
+%% @doc Subtract `EClockB' from `EClockA'.
+-spec subtract(eclock(), eclock()) ->
+    orddict:orddict(actor(), list(sn())).
+subtract(EClockA, EClockB) ->
+    orddict:map(
+        fun(Id, A) ->
+            B = orddict_ext:fetch(Id, EClockB, bottom()),
+            do_subtract(A, B)
+        end,
+        EClockA
+    ).
+
+%% @private
+-spec do_subtract(per_node(), per_node()) -> list(sn()).
+do_subtract({SA, ExA}, {SB, ExB}) ->
+    (seq(SB + 1, SA)          -- ExA)
+    ++
+    ([E || E <- ExB, E =< SA] -- ExA).
+
+%% @private
+-spec seq(sn(), sn()) -> list(sn()).
+seq(SA, SB) when SA =< SB ->
+    lists:seq(SA, SB);
+seq(_, _) ->
+    [].
