@@ -114,37 +114,6 @@ prop_union() ->
     ).
 
 %% @private
-prop_subtract() ->
-    ?FORALL(
-        {L1, L2},
-        {?DOTL, ?DOTL},
-        begin
-            C1 = cc(L1),
-            C2 = cc(L2),
-            IdToSequences = eclock:subtract(C1, C2),
-            V1 = orddict:fold(
-                fun(Id, Sequences, Acc0) ->
-                    lists:foldl(
-                        fun(Sn, Acc1) ->
-                            dot_set:add_dot({Id, Sn}, Acc1)
-                        end,
-                        Acc0,
-                        Sequences
-                    )
-                end,
-                dot_set:new(),
-                IdToSequences
-            ),
-
-            Set1 = eclock:dots(C1),
-            Set2 = eclock:dots(C2),
-            V2 = dot_set:subtract(Set1, Set2),
-
-            V1 == V2
-        end
-    ).
-
-%% @private
 ds(L) ->
     dot_set:from_dots(L).
 

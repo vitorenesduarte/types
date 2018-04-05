@@ -30,9 +30,11 @@
          add_dot/2,
          is_element/2,
          union/2,
-         subtract/2]).
+         exceptions/2]).
 
 -export_type([eclock/0]).
+
+-define(BOTTOM, {0, []}).
 
 %% exception clock
 -type dot_set() :: dot_store:dot_set().
@@ -41,10 +43,6 @@
 -type per_node() :: {sn(), ordsets:ordset(sn())}.
 -type actor() :: dot_store:dot_actor().
 -type eclock() :: orddict:orddict(actor(), per_node()).
-
-%% @private
-bottom() ->
-    {0, []}.
 
 %% @doc Create an empty Exception Clock.
 -spec new() -> eclock().
@@ -87,7 +85,7 @@ dots(EClock) ->
 -spec next_dot(actor(), eclock()) -> dot().
 next_dot(Id, EClock0) ->
     %% retrieve current value and exceptions
-    {Sequence, _Exceptions} = orddict_ext:fetch(Id, EClock0, bottom()),
+    {Sequence, _Exceptions} = orddict_ext:fetch(Id, EClock0, ?BOTTOM),
 
     %% create next dot
     {Id, Sequence + 1}.
@@ -95,7 +93,7 @@ next_dot(Id, EClock0) ->
 %% @doc Add a dot to the Exception Clock.
 -spec add_dot(dot(), eclock()) -> eclock().
 add_dot({Id, Sequence}, EClock) ->
-    {CurrentValue, Exceptions} = orddict_ext:fetch(Id, EClock, bottom()),
+    {CurrentValue, Exceptions} = orddict_ext:fetch(Id, EClock, ?BOTTOM),
     NextEntry = case Sequence >= CurrentValue + 1 of
         true ->
             %% add all possible exceptions
@@ -124,7 +122,7 @@ add_dot({Id, Sequence}, EClock) ->
 %% @doc Check if a dot belongs to the Exception Clock.
 -spec is_element(dot(), eclock()) -> boolean().
 is_element({Id, Sequence}, EClock) ->
-    {Current, Exceptions} = orddict_ext:fetch(Id, EClock, bottom()),
+    {Current, Exceptions} = orddict_ext:fetch(Id, EClock, ?BOTTOM),
     Sequence =< Current andalso
     not ordsets:is_element(Sequence, Exceptions).
 
@@ -165,28 +163,9 @@ union(EClockA, EClockB) ->
         EClockB
     ).
 
-%% @doc Subtract `EClockB' from `EClockA'.
--spec subtract(eclock(), eclock()) ->
-    orddict:orddict(actor(), list(sn())).
-subtract(EClockA, EClockB) ->
-    orddict:map(
-        fun(Id, A) ->
-            B = orddict_ext:fetch(Id, EClockB, bottom()),
-            do_subtract(A, B)
-        end,
-        EClockA
-    ).
-
-%% @private
--spec do_subtract(per_node(), per_node()) -> list(sn()).
-do_subtract({SA, ExA}, {SB, ExB}) ->
-    (seq(SB + 1, SA)          -- ExA)
-    ++
-    ([E || E <- ExB, E =< SA] -- ExA).
-
-%% @private
--spec seq(sn(), sn()) -> list(sn()).
-seq(SA, SB) when SA =< SB ->
-    lists:seq(SA, SB);
-seq(_, _) ->
-    [].
+%% @doc Get the exceptions of some node
+%%      with id `Id'.
+-spec exceptions(actor(), eclock()) -> list(sn()).
+exceptions(Id, EClock) ->
+    {_, Exceptions} = orddict_ext:fetch(Id, EClock, ?BOTTOM),
+    Exceptions.
