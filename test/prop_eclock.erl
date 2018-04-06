@@ -37,13 +37,7 @@ prop_from_dots() ->
             %% if we construct a cc from a list of dots,
             %% all of those dots should be there
             CC = cc(L),
-            lists:foldl(
-                fun(Dot, Acc) ->
-                    Acc andalso eclock:is_element(Dot, CC)
-                end,
-                true,
-                L
-            )
+            lists:all(fun(Dot) -> eclock:is_element(Dot, CC) end, L)
        end
     ).
 
@@ -54,9 +48,11 @@ prop_add_dot() ->
         begin
             %% if we add a dot to a cc it should be there
             CC = cc(L),
-            eclock:is_element(
-                Dot,
-                eclock:add_dot(Dot, CC)
+            CC1 = eclock:add_dot(Dot, CC),
+            eclock:is_element(Dot, CC1)
+            andalso lists:all(
+                fun(Prev) -> eclock:is_element(Prev, CC1) end,
+                eclock:dots(CC)
             )
         end
     ).
