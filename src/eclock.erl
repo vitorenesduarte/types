@@ -31,7 +31,7 @@
          is_element/2,
          union/2,
          exceptions/2,
-         size/1]).
+         dot_count/1]).
 
 -export_type([eclock/0]).
 
@@ -171,11 +171,11 @@ exceptions(Id, EClock) ->
     {_, Exceptions} = orddict_ext:fetch(Id, EClock, ?BOTTOM),
     Exceptions.
 
-%% @doc Get the size of an EClock:
+%% @doc Get the dot count in the EClock.
 %%      - number of nodes in the clock
 %%      plus total number of exceptions
--spec size(eclock()) -> non_neg_integer().
-size(EClock) ->
+-spec dot_count(eclock()) -> non_neg_integer().
+dot_count(EClock) ->
     orddict:fold(
         fun({_, {_, Exceptions}}, Acc) ->
             Acc + 1 + ordsets:size(Exceptions)
