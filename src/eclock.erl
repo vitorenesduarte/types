@@ -177,7 +177,7 @@ exceptions(Id, EClock) ->
 -spec dot_count(eclock()) -> non_neg_integer().
 dot_count(EClock) ->
     orddict:fold(
-        fun({_, {_, Exceptions}}, Acc) ->
+        fun(_, {_, Exceptions}, Acc) ->
             Acc + 1 + ordsets:size(Exceptions)
         end,
         0,
