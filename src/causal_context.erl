@@ -89,7 +89,7 @@ add_dot({Actor, Sequence}=Dot, {Compressed0, DotSet0}=CC) ->
         true ->
             %% update the compressed component
             Compressed1 = orddict:store(Actor, Sequence, Compressed0),
-            {Compressed1, DotSet0};
+            compress({Compressed1, DotSet0});
         false ->
             case Sequence > Current + 1 of
                 true ->

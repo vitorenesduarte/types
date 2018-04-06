@@ -37,13 +37,7 @@ prop_from_dots() ->
             %% if we construct a cc from a list of dots,
             %% all of those dots should be there
             CC = cc(L),
-            lists:foldl(
-                fun(Dot, Acc) ->
-                    Acc andalso causal_context:is_element(Dot, CC)
-                end,
-                true,
-                L
-            )
+            lists:all(fun(Dot) -> causal_context:is_element(Dot, CC) end, L)
        end
     ).
 
@@ -126,9 +120,23 @@ prop_union() ->
     ).
 
 %% @private
-ds(L) ->
-    dot_set:from_dots(L).
+cc(L) ->
+    lists:foldl(
+        fun(Dot, CC) ->
+            causal_context:add_dot(Dot, CC)
+        end,
+        causal_context:new(),
+        shuffle(L)
+    ).
 
 %% @private
-cc(L) ->
-    causal_context:from_dot_set(ds(L)).
+shuffle(L) ->
+    rand:seed(exsplus, erlang:timestamp()),
+    lists:map(
+        fun({_, E}) -> E end,
+        lists:sort(
+            lists:map(
+                fun(E) -> {rand:uniform(), E} end, L
+            )
+        )
+    ).
