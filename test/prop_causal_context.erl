@@ -103,19 +103,7 @@ prop_union() ->
                 causal_context:dots(Union)
             ),
 
-            %% Dots in the DotSet don't belong in the compressed part
-            {Compressed, DotSet} = Union,
-            FakeUnion = {Compressed, dot_set:new()},
-            R3 = dot_set:fold(
-                fun(Dot, Acc) ->
-                    Acc andalso
-                    not causal_context:is_element(Dot, FakeUnion)
-                end,
-                true,
-                DotSet
-            ),
-
-            R1 andalso R2 andalso R3
+            R1 andalso R2
         end
     ).
 
