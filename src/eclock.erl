@@ -31,6 +31,7 @@
          is_element/2,
          union/2,
          exceptions/2,
+         previous_exceptions/2,
          dot_count/1]).
 
 -export_type([eclock/0]).
@@ -167,6 +168,13 @@ union(EClockA, EClockB) ->
 exceptions(Id, EClock) ->
     {_, Exceptions} = orddict_ext:fetch(Id, EClock, ?BOTTOM),
     Exceptions.
+
+%% @doc Get the exceptions of some node
+%%      with id `Id' that are in the past of Dot.
+-spec previous_exceptions(dot(), eclock()) -> list(sn()).
+previous_exceptions({Id, Sequence}, EClock) ->
+    {_, Exceptions} = orddict_ext:fetch(Id, EClock, ?BOTTOM),
+    [Ctr || Ctr <- Exceptions, Ctr < Sequence].
 
 %% @doc Get the dot count in the EClock.
 %%      - number of nodes in the clock
