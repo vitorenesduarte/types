@@ -98,10 +98,7 @@ add_dot({Id, Sequence}, EClock) ->
     NextEntry = case Sequence >= CurrentValue + 1 of
         true ->
             %% add all possible exceptions
-            NewExceptions = lists:foldl(
-                fun(S, Acc) ->
-                    ordsets:add_element(S, Acc)
-                end,
+            NewExceptions = ordsets:union(
                 Exceptions,
                 lists:seq(CurrentValue + 1, Sequence - 1)
             ),
