@@ -44,7 +44,7 @@
 -endif.
 
 -export([new/0, new/1]).
--export([mutate/3, delta_mutate/3, merge/2]).
+-export([mutate/3, delta_mutate/3, merge/2, delta_and_merge/2]).
 -export([query/1, equal/2, is_bottom/1,
          is_inflation/2, is_strict_inflation/2,
          irreducible_is_strict_inflation/2]).
@@ -110,6 +110,23 @@ merge({?TYPE, GCounter1}, {?TYPE, GCounter2}) ->
         GCounter2
     ),
     {?TYPE, GCounter}.
+
+%% @doc Merge two GCounter and return the delta responsible for the inflation.
+-spec delta_and_merge(state_gcounter(), state_gcounter()) -> {state_gcounter(), state_gcounter()}.
+delta_and_merge({?TYPE, Remote}, {?TYPE, Local}) ->
+    {Delta, CRDT} = orddict:fold(
+        fun(RKey, RValue, {DeltaAcc, CRDTAcc}=Acc) ->
+            LValue = orddict_ext:fetch(RKey, CRDTAcc, 0),
+            case RValue > LValue of
+                %% inflation
+                true -> {orddict:store(RKey, RValue, DeltaAcc), orddict:store(RKey, RValue, CRDTAcc)};
+                false -> Acc
+            end
+        end,
+        {[], Local},
+        Remote
+    ),
+    {{?TYPE, Delta}, {?TYPE, CRDT}}.
 
 %% @doc Are two `state_gcounter()'s structurally equal?
 %%      This is not `query/1' equality.
@@ -284,6 +301,16 @@ merge_deltas_test() ->
     ?assertEqual({?TYPE, [{<<"1">>, 3}, {<<"2">>, 5}]}, Counter2),
     ?assertEqual({?TYPE, [{<<"1">>, 3}, {<<"2">>, 5}]}, Counter3),
     ?assertEqual({?TYPE, [{<<"1">>, 5}, {<<"2">>, 4}]}, DeltaGroup).
+
+delta_and_merge_test() ->
+    Local1 = {?TYPE, [{<<"1">>, 2}, {<<"2">>, 5}]},
+    Remote1 = {?TYPE, [{<<"1">>, 3}, {<<"2">>, 4}]},
+    {Delta1, Local2} = delta_and_merge(Remote1, Local1),
+    %% merging again will return nothing new
+    {Bottom, Local2} = delta_and_merge(Remote1, Local2),
+    ?assertEqual({?TYPE, [{<<"1">>, 3}]}, Delta1),
+    ?assert(is_bottom(Bottom)),
+    ?assertEqual({?TYPE, [{<<"1">>, 3}, {<<"2">>, 5}]}, Local2).
 
 equal_test() ->
     Counter1 = {?TYPE, [{1, 2}, {2, 1}, {4, 1}]},
