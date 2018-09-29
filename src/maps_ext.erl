@@ -26,15 +26,13 @@
 merge_all(MergeFun, MapA, MapB) ->
     %% merge A and with B
     %% (what's in B that's not in A won't be in `Map0')
-    Map0 = maps:fold(
-        fun(Key, ValueA, Acc) ->
-            NewValue = case maps:find(Key, MapB) of
+    Map0 = maps:map(
+        fun(Key, ValueA) ->
+            case maps:find(Key, MapB) of
                 {ok, ValueB} -> MergeFun(Key, ValueA, ValueB);
                 error -> ValueA
-            end,
-            maps:put(Key, NewValue, Acc)
+            end
         end,
-        #{},
         MapA
     ),
     %% merge B with `Map0'
