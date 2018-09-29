@@ -41,7 +41,7 @@
 -endif.
 
 -export([new/0, new/1]).
--export([mutate/3, delta_mutate/3, merge/2]).
+-export([mutate/3, delta_mutate/3, merge/2, delta_and_merge/2]).
 -export([query/1, equal/2, is_bottom/1,
          is_inflation/2, is_strict_inflation/2,
          irreducible_is_strict_inflation/2]).
@@ -102,6 +102,22 @@ query({?TYPE, GSet}) ->
 merge({?TYPE, GSet1}, {?TYPE, GSet2}) ->
     GSet = sets:union(GSet1, GSet2),
     {?TYPE, GSet}.
+
+%% @doc Merge two GSet and return the delta responsible for the inflation.
+-spec delta_and_merge(state_gset(), state_gset()) -> {state_gset(), state_gset()}.
+delta_and_merge({?TYPE, Remote}, {?TYPE, Local}) ->
+    {Delta, CRDT} = sets:fold(
+        fun(Element, {DeltaAcc, CRDTAcc}=Acc) ->
+            case not sets:is_element(Element, CRDTAcc) of
+                %% inflation
+                true -> {sets:add_element(Element, DeltaAcc), sets:add_element(Element, CRDTAcc)};
+                false -> Acc
+            end
+        end,
+        {sets:new(), Local},
+        Remote
+    ),
+    {{?TYPE, Delta}, {?TYPE, CRDT}}.
 
 %% @doc Equality for `state_gset()'.
 -spec equal(state_gset(), state_gset()) -> boolean().
@@ -231,16 +247,15 @@ merge_commutative_test() ->
     ?assertEqual({?TYPE, sets:from_list([<<"a">>, <<"b">>])}, Set3),
     ?assertEqual({?TYPE, sets:from_list([<<"a">>, <<"b">>])}, Set4).
 
-merge_deltas_test() ->
-    Set1 = {?TYPE, sets:from_list([<<"a">>])},
-    Delta1 = {?TYPE, sets:from_list([<<"a">>, <<"b">>])},
-    Delta2 = {?TYPE, sets:from_list([<<"c">>])},
-    Set2 = merge(Delta1, Set1),
-    Set3 = merge(Set1, Delta1),
-    DeltaGroup = merge(Delta1, Delta2),
-    ?assertEqual({?TYPE, sets:from_list([<<"a">>, <<"b">>])}, Set2),
-    ?assertEqual({?TYPE, sets:from_list([<<"a">>, <<"b">>])}, Set3),
-    ?assertEqual({?TYPE, sets:from_list([<<"a">>, <<"b">>, <<"c">>])}, DeltaGroup).
+delta_and_merge_test() ->
+    Local1 = {?TYPE, sets:from_list([<<"a">>, <<"c">>])},
+    Remote1 = {?TYPE, sets:from_list([<<"a">>, <<"b">>])},
+    Remote2 = {?TYPE, sets:from_list([<<"b">>])},
+    {Delta1, Local2} = delta_and_merge(Remote1, Local1),
+    {Delta2, Local2} = delta_and_merge(Remote2, Local2),
+    ?assertEqual({?TYPE, sets:from_list([<<"b">>])}, Delta1),
+    ?assertEqual({?TYPE, sets:new()}, Delta2),
+    ?assertEqual({?TYPE, sets:from_list([<<"a">>, <<"b">>, <<"c">>])}, Local2).
 
 equal_test() ->
     Set1 = {?TYPE, sets:from_list([<<"a">>])},
