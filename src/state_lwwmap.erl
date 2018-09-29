@@ -46,7 +46,7 @@
 -type key() :: term().
 -type timestamp() :: non_neg_integer().
 -type value() :: term().
--type state_lwwmap_op() :: {set, key(), timestamp(), value()}.
+-type state_lwwmap_op() :: {set, key(), timestamp(), value()} | [{set, key(), timestamp(), value()}].
 
 %% @doc Create a new, empty `state_lwwmap()'
 -spec new() -> state_lwwmap().
@@ -69,7 +69,18 @@ mutate(Op, Actor, {?TYPE, _LWWMap}=CRDT) ->
     {ok, state_lwwmap()}.
 delta_mutate({set, Key, Timestamp, Value}, _Actor, {?TYPE, _LWWMap}) ->
     Delta = maps:put(Key, {Timestamp, Value}, #{}),
-    {ok, {?TYPE, Delta}}.
+    {ok, {?TYPE, Delta}};
+delta_mutate(OpList, Actor, CRDT) ->
+    Result = lists:foldl(
+        fun(Op, Acc) ->
+            %% NOTE: all operations are done on the original CRDT
+            {ok, Delta} = delta_mutate(Op, Actor, CRDT),
+            merge(Delta, Acc)
+        end,
+        new(),
+        OpList
+    ),
+    {ok, Result}.
 
 %% @doc Returns the value of the `state_lwwmap()'.
 -spec query(state_lwwmap()) -> non_neg_integer().
@@ -194,6 +205,11 @@ delta_set_test() ->
     ?assertEqual({?TYPE, maps:from_list([{a, {11, v2}}])}, Map2),
     ?assertEqual({?TYPE, maps:from_list([{b, {12, v3}}])}, {?TYPE, Delta3}),
     ?assertEqual({?TYPE, maps:from_list([{a, {11, v2}}, {b, {12, v3}}])}, Map3).
+
+delta_multiple_set_test() ->
+    OpList = [{set, a, 10, v1}, {set, a, 11, v2}, {set, b, 12, v3}],
+    {ok, {?TYPE, Delta}} = delta_mutate(OpList, 1, new()),
+    ?assertEqual({?TYPE, maps:from_list([{a, {11, v2}}, {b, {12, v3}}])}, {?TYPE, Delta}).
 
 merge_test() ->
     Map1 = {?TYPE, maps:from_list([{a, {10, v1}}, {b, {11, v2}}])},
