@@ -103,10 +103,12 @@ apply_op({Key, Op}, Actor, {?TYPE, {CType, _}}=CRDT) ->
     apply_op({Key, CType, Op}, Actor, CRDT);
 apply_op({Key, OpType, Op}, Actor, {?TYPE, {CType, GMap}}) ->
     {Type, Args} = state_type:extract_args(OpType),
-    Bottom = Type:new(Args),
-    Current = dict_ext:fetch(Key, GMap, Bottom),
+    Current = case dict:find(Key, GMap) of
+        {ok, V} -> V;
+        error -> Type:new(Args)
+    end,
+
     {ok, KeyDelta} = Type:delta_mutate(Op, Actor, Current),
-    % dict:store(Key, KeyDelta, dict:new()),
     Delta = dict:from_list([{Key, KeyDelta}]),
     {?TYPE, {CType, Delta}}.
 
