@@ -204,7 +204,7 @@ crdt_size({?GSET_TYPE, CRDT}) ->
     {0, sets:size(CRDT)};
 crdt_size({?GMAP_TYPE, {_, CRDT}}) ->
     {dict:size(CRDT), 0};
-crdt_size({?LWWMAP_TYPE, {_, CRDT}}) ->
+crdt_size({?LWWMAP_TYPE, CRDT}) ->
     {maps:size(CRDT), 0}.
 
 %% @doc Digest size.
