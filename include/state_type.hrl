@@ -9,6 +9,7 @@
 -define(GSET_TYPE, state_gset).
 -define(IVAR_TYPE, state_ivar).
 -define(LEXCOUNTER_TYPE, state_lexcounter).
+-define(LWWMAP_TYPE, state_lwwmap).
 -define(LWWREGISTER_TYPE, state_lwwregister).
 -define(MAX_INT_TYPE, state_max_int).
 -define(MVREGISTER_TYPE, state_mvregister).

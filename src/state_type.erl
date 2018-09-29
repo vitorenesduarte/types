@@ -51,6 +51,7 @@
                       state_gset |
                       state_ivar |
                       state_lexcounter |
+                      state_lwwmap |
                       state_lwwregister |
                       state_max_int |
                       state_mvregister |
@@ -200,9 +201,11 @@ crdt_size({?AWSET_TYPE, {DotMap, CausalContext}}) ->
 crdt_size({?GCOUNTER_TYPE, CRDT}) ->
     {orddict:size(CRDT), 0};
 crdt_size({?GSET_TYPE, CRDT}) ->
-    {0, ordsets:size(CRDT)};
+    {0, sets:size(CRDT)};
 crdt_size({?GMAP_TYPE, {_, CRDT}}) ->
-    {dict:size(CRDT), 0}.
+    {dict:size(CRDT), 0};
+crdt_size({?LWWMAP_TYPE, {_, CRDT}}) ->
+    {maps:size(CRDT), 0}.
 
 %% @doc Digest size.
 digest_size({ActiveDots, CausalContext}) ->
