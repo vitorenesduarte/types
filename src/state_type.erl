@@ -56,7 +56,6 @@
                       state_mvregister |
                       state_mvmap |
                       state_orset |
-                      state_pair |
                       state_pncounter |
                       state_twopset.
 -type crdt() :: {state_type(), type:payload()}.
@@ -114,8 +113,6 @@
 -spec new(crdt()) -> any(). %% @todo Fix this any()
 new({?GMAP_TYPE, {ValuesType, _Payload}}) ->
     ?GMAP_TYPE:new([ValuesType]);
-new({?PAIR_TYPE, {Fst, Snd}}) ->
-    {?PAIR_TYPE, {new(Fst), new(Snd)}};
 new({Type, _Payload}) ->
     Type:new().
 

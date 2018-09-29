@@ -14,6 +14,5 @@
 -define(MVREGISTER_TYPE, state_mvregister).
 -define(MVMAP_TYPE, state_mvmap).
 -define(ORSET_TYPE, state_orset).
--define(PAIR_TYPE, state_pair).
 -define(PNCOUNTER_TYPE, state_pncounter).
 -define(TWOPSET_TYPE, state_twopset).

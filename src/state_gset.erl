@@ -51,14 +51,14 @@
 -export_type([state_gset/0, state_gset_op/0]).
 
 -opaque state_gset() :: {?TYPE, payload()}.
--type payload() :: ordsets:ordset(any()).
+-type payload() :: sets:set(any()).
 -type element() :: term().
 -type state_gset_op() :: {add, element()}.
 
 %% @doc Create a new, empty `state_gset()'
 -spec new() -> state_gset().
 new() ->
-    {?TYPE, ordsets:new()}.
+    {?TYPE, sets:new()}.
 
 %% @doc Create a new, empty `state_gset()'
 -spec new([term()]) -> state_gset().
@@ -82,37 +82,36 @@ mutate(Op, Actor, {?TYPE, _GSet}=CRDT) ->
 -spec delta_mutate(state_gset_op(), type:id(), state_gset()) ->
     {ok, state_gset()}.
 delta_mutate({add, Elem}, _Actor, {?TYPE, GSet}) ->
-    Delta = case ordsets:is_element(Elem, GSet) of
-        true ->
-            ordsets:new();
-        false ->
-            ordsets:add_element(Elem, ordsets:new())
+    DeltaList = case sets:is_element(Elem, GSet) of
+        true -> [];
+        false -> [Elem]
     end,
+    Delta = sets:from_list(DeltaList),
     {ok, {?TYPE, Delta}}.
 
 %% @doc Returns the value of the `state_gset()'.
 %%      This value is a set with all the elements in the `state_gset()'.
 -spec query(state_gset()) -> sets:set(element()).
 query({?TYPE, GSet}) ->
-    sets:from_list(GSet).
+    GSet.
 
 %% @doc Merge two `state_gset()'.
 %%      The result is the set union of both sets in the
 %%      `state_gset()' passed as argument.
 -spec merge(state_gset(), state_gset()) -> state_gset().
 merge({?TYPE, GSet1}, {?TYPE, GSet2}) ->
-    GSet = ordsets:union(GSet1, GSet2),
+    GSet = sets:union(GSet1, GSet2),
     {?TYPE, GSet}.
 
 %% @doc Equality for `state_gset()'.
 -spec equal(state_gset(), state_gset()) -> boolean().
 equal({?TYPE, GSet1}, {?TYPE, GSet2}) ->
-    ordsets_ext:equal(GSet1, GSet2).
+    sets_ext:equal(GSet1, GSet2).
 
 %% @doc Check if a GSet is bottom.
 -spec is_bottom(state_gset()) -> boolean().
 is_bottom({?TYPE, GSet}) ->
-    ordsets:size(GSet) == 0.
+    sets:size(GSet) == 0.
 
 %% @doc Given two `state_gset()', check if the second is an inflation
 %%      of the first.
@@ -120,7 +119,7 @@ is_bottom({?TYPE, GSet}) ->
 %%      a subset of the second.
 -spec is_inflation(state_gset(), state_gset()) -> boolean().
 is_inflation({?TYPE, GSet1}, {?TYPE, GSet2}) ->
-    ordsets:is_subset(GSet1, GSet2);
+    sets:is_subset(GSet1, GSet2);
 
 %% @todo get back here later
 is_inflation({cardinality, Value1}, {?TYPE, _}=GSet) ->
@@ -141,9 +140,9 @@ is_strict_inflation({cardinality, Value1}, {?TYPE, _}=GSet) ->
 -spec irreducible_is_strict_inflation(state_gset(),
                                       state_type:digest()) ->
     boolean().
-irreducible_is_strict_inflation({?TYPE, [E]},
+irreducible_is_strict_inflation({?TYPE, E},
                                 {state, {?TYPE, GSet}}) ->
-    not ordsets:is_element(E, GSet).
+    not sets:is_subset(E, GSet).
 
 -spec digest(state_gset()) -> state_type:digest().
 digest({?TYPE, _}=CRDT) ->
@@ -155,9 +154,9 @@ digest({?TYPE, _}=CRDT) ->
 %%      element.
 -spec join_decomposition(state_gset()) -> [state_gset()].
 join_decomposition({?TYPE, GSet}) ->
-    ordsets:fold(
+    sets:fold(
         fun(Elem, Acc) ->
-            [{?TYPE, [Elem]} | Acc]
+            [{?TYPE, sets:from_list([Elem])} | Acc]
         end,
         [],
         GSet
@@ -184,11 +183,11 @@ decode(erlang, Binary) ->
 -ifdef(TEST).
 
 new_test() ->
-    ?assertEqual({?TYPE, ordsets:new()}, new()).
+    ?assertEqual({?TYPE, sets:new()}, new()).
 
 query_test() ->
     Set0 = new(),
-    Set1 = {?TYPE, [<<"a">>]},
+    Set1 = {?TYPE, sets:from_list([<<"a">>])},
     ?assertEqual(sets:new(), query(Set0)),
     ?assertEqual(sets:from_list([<<"a">>]), query(Set1)).
 
@@ -201,63 +200,63 @@ delta_add_test() ->
     Set2 = merge({?TYPE, Delta2}, Set1),
     {ok, {?TYPE, Delta3}} = delta_mutate({add, <<"b">>}, Actor, Set2),
     Set3 = merge({?TYPE, Delta3}, Set2),
-    ?assertEqual({?TYPE, [<<"a">>]}, {?TYPE, Delta1}),
-    ?assertEqual({?TYPE, [<<"a">>]}, Set1),
-    ?assertEqual({?TYPE, []}, {?TYPE, Delta2}),
-    ?assertEqual({?TYPE, [<<"a">>]}, Set2),
-    ?assertEqual({?TYPE, [<<"b">>]}, {?TYPE, Delta3}),
-    ?assertEqual({?TYPE, [<<"a">>, <<"b">>]}, Set3).
+    ?assertEqual({?TYPE, sets:from_list([<<"a">>])}, {?TYPE, Delta1}),
+    ?assertEqual({?TYPE, sets:from_list([<<"a">>])}, Set1),
+    ?assertEqual({?TYPE, sets:new()}, {?TYPE, Delta2}),
+    ?assertEqual({?TYPE, sets:from_list([<<"a">>])}, Set2),
+    ?assertEqual({?TYPE, sets:from_list([<<"b">>])}, {?TYPE, Delta3}),
+    ?assertEqual({?TYPE, sets:from_list([<<"a">>, <<"b">>])}, Set3).
 
 add_test() ->
     Actor = 1,
     Set0 = new(),
     {ok, Set1} = mutate({add, <<"a">>}, Actor, Set0),
     {ok, Set2} = mutate({add, <<"b">>}, Actor, Set1),
-    ?assertEqual({?TYPE, [<<"a">>]}, Set1),
-    ?assertEqual({?TYPE, [<<"a">>, <<"b">>]}, Set2).
+    ?assertEqual({?TYPE, sets:from_list([<<"a">>])}, Set1),
+    ?assertEqual({?TYPE, sets:from_list([<<"a">>, <<"b">>])}, Set2).
 
 merge_idempotent_test() ->
-    Set1 = {?TYPE, [<<"a">>]},
-    Set2 = {?TYPE, [<<"a">>, <<"b">>]},
+    Set1 = {?TYPE, sets:from_list([<<"a">>])},
+    Set2 = {?TYPE, sets:from_list([<<"a">>, <<"b">>])},
     Set3 = merge(Set1, Set1),
     Set4 = merge(Set2, Set2),
     ?assertEqual(Set1, Set3),
     ?assertEqual(Set2, Set4).
 
 merge_commutative_test() ->
-    Set1 = {?TYPE, [<<"a">>]},
-    Set2 = {?TYPE, [<<"a">>, <<"b">>]},
+    Set1 = {?TYPE, sets:from_list([<<"a">>])},
+    Set2 = {?TYPE, sets:from_list([<<"a">>, <<"b">>])},
     Set3 = merge(Set1, Set2),
     Set4 = merge(Set2, Set1),
-    ?assertEqual({?TYPE, [<<"a">>, <<"b">>]}, Set3),
-    ?assertEqual({?TYPE, [<<"a">>, <<"b">>]}, Set4).
+    ?assertEqual({?TYPE, sets:from_list([<<"a">>, <<"b">>])}, Set3),
+    ?assertEqual({?TYPE, sets:from_list([<<"a">>, <<"b">>])}, Set4).
 
 merge_deltas_test() ->
-    Set1 = {?TYPE, [<<"a">>]},
-    Delta1 = {?TYPE, [<<"a">>, <<"b">>]},
-    Delta2 = {?TYPE, [<<"c">>]},
+    Set1 = {?TYPE, sets:from_list([<<"a">>])},
+    Delta1 = {?TYPE, sets:from_list([<<"a">>, <<"b">>])},
+    Delta2 = {?TYPE, sets:from_list([<<"c">>])},
     Set2 = merge(Delta1, Set1),
     Set3 = merge(Set1, Delta1),
     DeltaGroup = merge(Delta1, Delta2),
-    ?assertEqual({?TYPE, [<<"a">>, <<"b">>]}, Set2),
-    ?assertEqual({?TYPE, [<<"a">>, <<"b">>]}, Set3),
-    ?assertEqual({?TYPE, [<<"a">>, <<"b">>, <<"c">>]}, DeltaGroup).
+    ?assertEqual({?TYPE, sets:from_list([<<"a">>, <<"b">>])}, Set2),
+    ?assertEqual({?TYPE, sets:from_list([<<"a">>, <<"b">>])}, Set3),
+    ?assertEqual({?TYPE, sets:from_list([<<"a">>, <<"b">>, <<"c">>])}, DeltaGroup).
 
 equal_test() ->
-    Set1 = {?TYPE, [<<"a">>]},
-    Set2 = {?TYPE, [<<"a">>, <<"b">>]},
+    Set1 = {?TYPE, sets:from_list([<<"a">>])},
+    Set2 = {?TYPE, sets:from_list([<<"a">>, <<"b">>])},
     ?assert(equal(Set1, Set1)),
     ?assertNot(equal(Set1, Set2)).
 
 is_bottom_test() ->
     Set0 = new(),
-    Set1 = {?TYPE, [<<"a">>]},
+    Set1 = {?TYPE, sets:from_list([<<"a">>])},
     ?assert(is_bottom(Set0)),
     ?assertNot(is_bottom(Set1)).
 
 is_inflation_test() ->
-    Set1 = {?TYPE, [<<"a">>]},
-    Set2 = {?TYPE, [<<"a">>, <<"b">>]},
+    Set1 = {?TYPE, sets:from_list([<<"a">>])},
+    Set2 = {?TYPE, sets:from_list([<<"a">>, <<"b">>])},
     ?assert(is_inflation(Set1, Set1)),
     ?assert(is_inflation(Set1, Set2)),
     ?assertNot(is_inflation(Set2, Set1)),
@@ -267,28 +266,28 @@ is_inflation_test() ->
     ?assertNot(state_type:is_inflation(Set2, Set1)).
 
 is_strict_inflation_test() ->
-    Set1 = {?TYPE, [<<"a">>]},
-    Set2 = {?TYPE, [<<"a">>, <<"b">>]},
+    Set1 = {?TYPE, sets:from_list([<<"a">>])},
+    Set2 = {?TYPE, sets:from_list([<<"a">>, <<"b">>])},
     ?assertNot(is_strict_inflation(Set1, Set1)),
     ?assert(is_strict_inflation(Set1, Set2)),
     ?assertNot(is_strict_inflation(Set2, Set1)).
 
 join_decomposition_test() ->
-    Set1 = {?TYPE, [<<"a">>]},
-    Set2 = {?TYPE, [<<"a">>, <<"b">>]},
+    Set1 = {?TYPE, sets:from_list([<<"a">>])},
+    Set2 = {?TYPE, sets:from_list([<<"a">>, <<"b">>])},
     Decomp1 = join_decomposition(Set1),
     Decomp2 = join_decomposition(Set2),
-    ?assertEqual([{?TYPE, [<<"a">>]}], Decomp1),
-    ?assertEqual(lists:sort([{?TYPE, [<<"a">>]}, {?TYPE, [<<"b">>]}]), lists:sort(Decomp2)).
+    ?assertEqual([{?TYPE, sets:from_list([<<"a">>])}], Decomp1),
+    ?assertEqual(lists:sort([{?TYPE, sets:from_list([<<"a">>])}, {?TYPE, sets:from_list([<<"b">>])}]), lists:sort(Decomp2)).
 
 delta_test() ->
-    A = {?TYPE, ["a", "b", "c"]},
-    B = {state, {?TYPE, ["b", "d"]}},
+    A = {?TYPE, sets:from_list(["a", "b", "c"])},
+    B = {state, {?TYPE, sets:from_list(["b", "d"])}},
     Delta = delta(A, B),
-    ?assertEqual({?TYPE, ["a", "c"]}, Delta).
+    ?assertEqual({?TYPE, sets:from_list(["a", "c"])}, Delta).
 
 encode_decode_test() ->
-    Set = {?TYPE, [<<"a">>, <<"b">>]},
+    Set = {?TYPE, sets:from_list([<<"a">>, <<"b">>])},
     Binary = encode(erlang, Set),
     ESet = decode(erlang, Binary),
     ?assertEqual(Set, ESet).
