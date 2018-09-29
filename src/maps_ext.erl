@@ -23,7 +23,7 @@
 -export([merge_all/3]).
 
 %% @doc
-merge_all(MapA, MapB, MergeFun) ->
+merge_all(MergeFun, MapA, MapB) ->
     %% merge A and with B
     %% (what's in B that's not in A won't be in `Map0')
     Map0 = maps:fold(
