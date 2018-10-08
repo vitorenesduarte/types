@@ -183,6 +183,12 @@ extract_args(Type) ->
 %%      First component is the metadata size,
 %%      the second component is the payload size.
 -spec crdt_size(crdt()) -> {non_neg_integer(), non_neg_integer()}.
+crdt_size({?GCOUNTER_TYPE, CRDT}) ->
+    {maps:size(CRDT), 0};
+crdt_size({?GSET_TYPE, CRDT}) ->
+    {0, sets:size(CRDT)};
+crdt_size({?LWWMAP_TYPE, CRDT}) ->
+    {maps:size(CRDT), 0};
 crdt_size({?AWSET_TYPE, {DotMap, CausalContext}}) ->
     %% size of the dot map
     {M, P} = dot_map:fold(
@@ -193,13 +199,7 @@ crdt_size({?AWSET_TYPE, {DotMap, CausalContext}}) ->
         {0, 0},
         DotMap
     ),
-    {M + causal_context_size(CausalContext), P};
-crdt_size({?GCOUNTER_TYPE, CRDT}) ->
-    {orddict:size(CRDT), 0};
-crdt_size({?GSET_TYPE, CRDT}) ->
-    {0, sets:size(CRDT)};
-crdt_size({?LWWMAP_TYPE, CRDT}) ->
-    {maps:size(CRDT), 0}.
+    {M + causal_context_size(CausalContext), P}.
 
 %% @doc Digest size.
 digest_size({ActiveDots, CausalContext}) ->
