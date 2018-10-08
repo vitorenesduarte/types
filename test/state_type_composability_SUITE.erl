@@ -48,23 +48,12 @@ end_per_testcase(_Case, Config) -> Config.
 
 all() ->
     [
-        maps_within_maps_test,
-        awmap_nested_rmv_test,
-        gmap_with_arbitrary_nested_values_test
+        awmap_nested_rmv_test
     ].
 
 %% ===================================================================
 %% tests
 %% ===================================================================
-
-maps_within_maps_test(_Config) ->
-    lists:foreach(
-        fun(MapType) ->
-            map_with_awset(MapType),
-            map_with_map_with_awset(MapType)
-        end,
-        [?GMAP_TYPE, ?AWMAP_TYPE]
-    ).
 
 awmap_nested_rmv_test(_Config) ->
     Actor = "A",
@@ -92,61 +81,3 @@ awmap_nested_rmv_test(_Config) ->
     ?assertEqual([{"hello", [{"world_z", sets:from_list([23])}]}], Query7),
     ?assertEqual([], Query8).
 
-gmap_with_arbitrary_nested_values_test(_Config) ->
-    Actor = "A",
-    Map0 = ?GMAP_TYPE:new([?LWWREGISTER_TYPE]),
-    {ok, Map1} = ?GMAP_TYPE:mutate({apply, "set", {?GMAP_TYPE, [?AWSET_TYPE]}, {apply, "key", {add, 3}}}, Actor, Map0),
-    {ok, Map2} = ?GMAP_TYPE:mutate({apply, "reg", ?LWWREGISTER_TYPE, {set, 1, "hello"}}, Actor, Map1),
-    {ok, Map3} = ?GMAP_TYPE:mutate({apply, "reg", {set, 2, "world"}}, Actor, Map2),
-
-    Query1 = ?GMAP_TYPE:query(Map1),
-    Query2 = ?GMAP_TYPE:query(Map2),
-    Query3 = ?GMAP_TYPE:query(Map3),
-
-    ?assertEqual([{"set", [{"key", sets:from_list([3])}]}], Query1),
-    ?assertEqual([{"reg", "hello"}, {"set", [{"key", sets:from_list([3])}]}], Query2),
-    ?assertEqual([{"reg", "world"}, {"set", [{"key", sets:from_list([3])}]}], Query3),
-
-    {ok, Map4} = ?GMAP_TYPE:mutate({apply_all, [{"set", {?GMAP_TYPE, [?AWSET_TYPE]}, {apply, "key", {add, 3}}},
-                                                {"reg", ?LWWREGISTER_TYPE, {set, 1, "hello"}},
-                                                {"reg", {set, 2, "world"}}]}, Actor, Map0),
-
-    ?assert(?GMAP_TYPE:equal(Map3, Map4)).
-
-
-%% ===================================================================
-%% Internal functions
-%% ===================================================================
-
-map_with_awset(MapType) ->
-    Actor = "A",
-    CType = ?AWSET_TYPE,
-    Map0 = MapType:new([CType]),
-    {ok, Map1} = MapType:mutate({apply, "hello", {add, 3}}, Actor, Map0),
-    {ok, Map2} = MapType:mutate({apply, "world", {add, 17}}, Actor, Map1),
-    {ok, Map3} = MapType:mutate({apply, "hello", {add, 13}}, Actor, Map2),
-    Query1 = MapType:query(Map1),
-    Query2 = MapType:query(Map2),
-    Query3 = MapType:query(Map3),
-
-    ?assertEqual([{"hello", sets:from_list([3])}], Query1),
-    ?assertEqual([{"hello", sets:from_list([3])}, {"world", sets:from_list([17])}], Query2),
-    ?assertEqual([{"hello", sets:from_list([3, 13])}, {"world", sets:from_list([17])}], Query3).
-
-map_with_map_with_awset(MapType) ->
-    Actor = "A",
-    CType = {MapType, [?AWSET_TYPE]},
-    Map0 = MapType:new([CType]),
-    {ok, Map1} = MapType:mutate({apply, "hello", {apply, "world_one", {add, 3}}}, Actor, Map0),
-    {ok, Map2} = MapType:mutate({apply, "hello", {apply, "world_two", {add, 7}}}, Actor, Map1),
-    {ok, Map3} = MapType:mutate({apply, "world", {apply, "hello", {add, 17}}}, Actor, Map2),
-    {ok, Map4} = MapType:mutate({apply, "hello", {apply, "world_one", {add, 13}}}, Actor, Map3),
-    Query1 = MapType:query(Map1),
-    Query2 = MapType:query(Map2),
-    Query3 = MapType:query(Map3),
-    Query4 = MapType:query(Map4),
-
-    ?assertEqual([{"hello", [{"world_one", sets:from_list([3])}]}], Query1),
-    ?assertEqual([{"hello", [{"world_one", sets:from_list([3])}, {"world_two", sets:from_list([7])}]}], Query2),
-    ?assertEqual([{"hello", [{"world_one", sets:from_list([3])}, {"world_two", sets:from_list([7])}]}, {"world", [{"hello", sets:from_list([17])}]}], Query3),
-    ?assertEqual([{"hello", [{"world_one", sets:from_list([3, 13])}, {"world_two", sets:from_list([7])}]}, {"world", [{"hello", sets:from_list([17])}]}], Query4).

@@ -42,12 +42,10 @@
 -type state_type() :: state_awmap |
                       state_awset |
                       state_awset_ps |
-                      state_bcounter |
                       state_boolean |
                       state_dwflag |
                       state_ewflag |
                       state_gcounter |
-                      state_gmap |
                       state_gset |
                       state_ivar |
                       state_lexcounter |
@@ -112,8 +110,6 @@
 
 %% @doc Builds a new CRDT from a given CRDT
 -spec new(crdt()) -> any(). %% @todo Fix this any()
-new({?GMAP_TYPE, {ValuesType, _Payload}}) ->
-    ?GMAP_TYPE:new([ValuesType]);
 new({Type, _Payload}) ->
     Type:new().
 
@@ -202,8 +198,6 @@ crdt_size({?GCOUNTER_TYPE, CRDT}) ->
     {orddict:size(CRDT), 0};
 crdt_size({?GSET_TYPE, CRDT}) ->
     {0, sets:size(CRDT)};
-crdt_size({?GMAP_TYPE, {_, CRDT}}) ->
-    {dict:size(CRDT), 0};
 crdt_size({?LWWMAP_TYPE, CRDT}) ->
     {maps:size(CRDT), 0}.
 
