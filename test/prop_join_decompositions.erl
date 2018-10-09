@@ -81,19 +81,19 @@ prop_max_int_irreducible() ->
     ).
 
 
-%% counters
-prop_gcounter_decomposition() ->
-    ?FORALL(L, ?L(?INC),
-            check_decomposition(create(?GCOUNTER_TYPE, L))).
-prop_gcounter_redundant() ->
-    ?FORALL(L, ?L(?INC),
-            check_redundant(create(?GCOUNTER_TYPE, L))).
-prop_gcounter_irreducible() ->
-    ?FORALL({L, A, B}, {?L(?INC), ?PA(?INC), ?PB(?INC)},
-            check_irreducible(create(?GCOUNTER_TYPE, L),
-                              create(?GCOUNTER_TYPE, [A]),
-                              create(?GCOUNTER_TYPE, [B]))
-    ).
+%% %% counters
+%% prop_gcounter_decomposition() ->
+%%     ?FORALL(L, ?L(?INC),
+%%             check_decomposition(create(?GCOUNTER_TYPE, L))).
+%% prop_gcounter_redundant() ->
+%%     ?FORALL(L, ?L(?INC),
+%%             check_redundant(create(?GCOUNTER_TYPE, L))).
+%% prop_gcounter_irreducible() ->
+%%     ?FORALL({L, A, B}, {?L(?INC), ?PA(?INC), ?PB(?INC)},
+%%             check_irreducible(create(?GCOUNTER_TYPE, L),
+%%                               create(?GCOUNTER_TYPE, [A]),
+%%                               create(?GCOUNTER_TYPE, [B]))
+%%     ).
 
 prop_pncounter_decomposition() ->
     ?FORALL(L, ?L(?INCDEC),
