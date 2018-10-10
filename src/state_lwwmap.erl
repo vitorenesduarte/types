@@ -91,9 +91,9 @@ query({?TYPE, LWWMap}) ->
 %% @doc Returns the value of the `state_lwwmap()', given a list
 %%      of extra arguments.
 -spec query(list(term()), state_lwwmap()) -> non_neg_integer().
-query([MaxSize], {?TYPE, LWWMap}) ->
-    Keys = lists:sort(maps:keys(LWWMap)),
-    TopKeys = lists:sublist(Keys, MaxSize),
+query([MoreRecent], {?TYPE, LWWMap}) ->
+    Keys = lists:reverse(lists:sort(maps:keys(LWWMap))),
+    TopKeys = lists:sublist(Keys, MoreRecent),
     LWWMapTop = maps:with(TopKeys, LWWMap),
     query({?TYPE, LWWMapTop}).
 
