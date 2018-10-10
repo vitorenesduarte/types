@@ -203,7 +203,7 @@ query_test() ->
 query_args_test() ->
     Map1 = {?TYPE, maps:from_list([{1, {10, 1}}, {2, {11, 13}}, {3, {12, 1}}])},
     ?assertEqual(maps:from_list([{1, 1}, {2, 13}, {3, 1}]), query([10], Map1)),
-    ?assertEqual(maps:from_list([{1, 1}]), query([1], Map1)),
+    ?assertEqual(maps:from_list([{3, 1}]), query([1], Map1)),
     ?assertEqual(maps:from_list([]), query([0], Map1)).
 
 delta_set_test() ->
