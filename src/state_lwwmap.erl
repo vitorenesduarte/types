@@ -33,7 +33,7 @@
 
 -export([new/0, new/1]).
 -export([mutate/3, delta_mutate/3, merge/2, delta_and_merge/2]).
--export([query/1, equal/2, is_bottom/1,
+-export([query/1, query/2, equal/2, is_bottom/1,
          is_inflation/2, is_strict_inflation/2,
          irreducible_is_strict_inflation/2]).
 -export([join_decomposition/1, delta/2, digest/1]).
@@ -87,6 +87,15 @@ delta_mutate(OpList, Actor, CRDT) ->
 query({?TYPE, LWWMap}) ->
     %% simply hide timestamps
     maps:map(fun(_, {_, V}) -> V end, LWWMap).
+
+%% @doc Returns the value of the `state_lwwmap()', given a list
+%%      of extra arguments.
+-spec query(list(term()), state_lwwmap()) -> non_neg_integer().
+query([MaxSize], {?TYPE, LWWMap}) ->
+    Keys = lists:sort(maps:keys(LWWMap)),
+    TopKeys = lists:sublist(Keys, MaxSize),
+    LWWMapTop = maps:with(TopKeys, LWWMap),
+    query({?TYPE, LWWMapTop}).
 
 %% @doc Merge two `state_lwwmap()'.
 -spec merge(state_lwwmap(), state_lwwmap()) -> state_lwwmap().
@@ -190,6 +199,12 @@ query_test() ->
     Map1 = {?TYPE, maps:from_list([{1, {10, 1}}, {2, {11, 13}}, {3, {12, 1}}])},
     ?assertEqual(#{}, query(Map0)),
     ?assertEqual(maps:from_list([{1, 1}, {2, 13}, {3, 1}]), query(Map1)).
+
+query_args_test() ->
+    Map1 = {?TYPE, maps:from_list([{1, {10, 1}}, {2, {11, 13}}, {3, {12, 1}}])},
+    ?assertEqual(maps:from_list([{1, 1}, {2, 13}, {3, 1}]), query([10], Map1)),
+    ?assertEqual(maps:from_list([{1, 1}]), query([1], Map1)),
+    ?assertEqual(maps:from_list([]), query([0], Map1)).
 
 delta_set_test() ->
     Map0 = new(),
