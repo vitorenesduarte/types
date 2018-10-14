@@ -30,6 +30,8 @@
 -export([delta/2]).
 -export([extract_args/1]).
 -export([crdt_size/1,
+         term_size/1,
+         term_byte_size/1,
          digest_size/1]).
 
 -export_type([state_type/0,
@@ -189,6 +191,26 @@ crdt_size({?GSET_TYPE, CRDT}) ->
     sets:size(CRDT);
 crdt_size({?LWWMAP_TYPE, CRDT}) ->
     maps:size(CRDT).
+
+-spec term_size(crdt()) -> non_neg_integer().
+term_size({?GSET_TYPE, CRDT}) ->
+    sets:fold(
+        fun(Element, Acc) ->  Acc + term_byte_size(Element) end,
+        0,
+        CRDT
+    );
+term_size({?LWWMAP_TYPE, CRDT}) ->
+    maps:fold(
+        fun(Key, {_Timestamp, Value}, Acc) ->
+            Acc + term_byte_size(Key) + term_byte_size(Value)
+        end,
+        0,
+        CRDT
+    ).
+
+-spec term_byte_size(term()) -> non_neg_integer().
+term_byte_size(Term) ->
+    erlang:byte_size(erlang:term_to_binary(Term)).
 
 %% @doc Digest size.
 digest_size({ActiveDots, CausalContext}) ->
