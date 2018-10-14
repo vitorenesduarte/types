@@ -209,6 +209,8 @@ term_size({?LWWMAP_TYPE, CRDT}) ->
     ).
 
 -spec term_byte_size(term()) -> non_neg_integer().
+term_byte_size(Term) when is_binary(Term) ->
+    erlang:byte_size(Term);
 term_byte_size(Term) ->
     erlang:byte_size(erlang:term_to_binary(Term)).
 
