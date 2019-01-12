@@ -44,7 +44,7 @@
 -endif.
 
 -export([new/0, new/1]).
--export([mutate/3, delta_mutate/3, merge/2]).
+-export([mutate/3, delta_mutate/3, merge/2, delta_and_merge/2]).
 -export([query/1, equal/2, is_bottom/1,
          is_inflation/2, is_strict_inflation/2,
          irreducible_is_strict_inflation/2]).
@@ -101,6 +101,18 @@ merge({?TYPE, {Timestamp1, Value1}}, {?TYPE, {Timestamp2, Value2}}) ->
             {Timestamp2, Value2}
     end,
     {?TYPE, Register}.
+
+%% @doc
+-spec delta_and_merge(state_lwwregister(), state_lwwregister()) ->
+    {state_lwwregister(), state_lwwregister()}.
+delta_and_merge({?TYPE, {RemoteTs, _}}=Remote,
+                {?TYPE, {LocalTs, _}}=Local) ->
+    case RemoteTs > LocalTs of
+        true ->
+            {Remote, Remote};
+        false ->
+            {new(), Local}
+    end.
 
 %% @doc Equality for `state_lwwregister()'.
 -spec equal(state_lwwregister(), state_lwwregister()) -> boolean().
@@ -206,6 +218,14 @@ merge_commutative_test() ->
     Register4 = merge(Register2, Register1),
     ?assertEqual(Register2, Register3),
     ?assertEqual(Register2, Register4).
+
+delta_and_merge_test() ->
+    Local1 = {?TYPE, {11, v2}},
+    Remote1 = {?TYPE, {10, v1}},
+    Remote2 = {?TYPE, {12, v3}},
+    {Bottom, Local1} = delta_and_merge(Remote1, Local1),
+    {Remote2, Remote2} = delta_and_merge(Remote2, Local1),
+    ?assert(is_bottom(Bottom)).
 
 equal_test() ->
     Register1 = {?TYPE, {1234, "a"}},

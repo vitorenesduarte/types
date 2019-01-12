@@ -30,6 +30,8 @@
 -export([delta/2]).
 -export([extract_args/1]).
 -export([crdt_size/1,
+         term_size/1,
+         term_byte_size/1,
          digest_size/1]).
 
 -export_type([state_type/0,
@@ -42,21 +44,19 @@
 -type state_type() :: state_awmap |
                       state_awset |
                       state_awset_ps |
-                      state_bcounter |
                       state_boolean |
                       state_dwflag |
                       state_ewflag |
                       state_gcounter |
-                      state_gmap |
                       state_gset |
                       state_ivar |
                       state_lexcounter |
+                      state_lwwmap |
                       state_lwwregister |
                       state_max_int |
                       state_mvregister |
                       state_mvmap |
                       state_orset |
-                      state_pair |
                       state_pncounter |
                       state_twopset.
 -type crdt() :: {state_type(), type:payload()}.
@@ -112,10 +112,6 @@
 
 %% @doc Builds a new CRDT from a given CRDT
 -spec new(crdt()) -> any(). %% @todo Fix this any()
-new({?GMAP_TYPE, {ValuesType, _Payload}}) ->
-    ?GMAP_TYPE:new([ValuesType]);
-new({?PAIR_TYPE, {Fst, Snd}}) ->
-    {?PAIR_TYPE, {new(Fst), new(Snd)}};
 new({Type, _Payload}) ->
     Type:new().
 
@@ -188,24 +184,35 @@ extract_args(Type) ->
 %% @doc CRDT size.
 %%      First component is the metadata size,
 %%      the second component is the payload size.
--spec crdt_size(crdt()) -> {non_neg_integer(), non_neg_integer()}.
-crdt_size({?AWSET_TYPE, {DotMap, CausalContext}}) ->
-    %% size of the dot map
-    {M, P} = dot_map:fold(
-        fun(_, DotSet, {MAcc, PAcc}) ->
-            %% size of the dot set, +1 for the key
-            {MAcc + dot_set_size(DotSet), PAcc + 1}
-        end,
-        {0, 0},
-        DotMap
-    ),
-    {M + causal_context_size(CausalContext), P};
+-spec crdt_size(crdt()) -> non_neg_integer().
 crdt_size({?GCOUNTER_TYPE, CRDT}) ->
-    {orddict:size(CRDT), 0};
+    maps:size(CRDT);
 crdt_size({?GSET_TYPE, CRDT}) ->
-    {0, ordsets:size(CRDT)};
-crdt_size({?GMAP_TYPE, {_, CRDT}}) ->
-    {dict:size(CRDT), 0}.
+    sets:size(CRDT);
+crdt_size({?LWWMAP_TYPE, CRDT}) ->
+    maps:size(CRDT).
+
+-spec term_size(crdt()) -> non_neg_integer().
+term_size({?GSET_TYPE, CRDT}) ->
+    sets:fold(
+        fun(Element, Acc) ->  Acc + term_byte_size(Element) end,
+        0,
+        CRDT
+    );
+term_size({?LWWMAP_TYPE, CRDT}) ->
+    maps:fold(
+        fun(Key, {_Timestamp, Value}, Acc) ->
+            Acc + term_byte_size(Key) + term_byte_size(Value)
+        end,
+        0,
+        CRDT
+    ).
+
+-spec term_byte_size(term()) -> non_neg_integer().
+term_byte_size(Term) when is_binary(Term) ->
+    erlang:byte_size(Term);
+term_byte_size(Term) ->
+    erlang:byte_size(erlang:term_to_binary(Term)).
 
 %% @doc Digest size.
 digest_size({ActiveDots, CausalContext}) ->
