@@ -17,7 +17,7 @@
 %%
 %% -------------------------------------------------------------------
 
-%% @doc Op-based gset CRDT.
+%% @doc Op-based GSet CRDT.
 
 -module(op_gset).
 -author("Vitor Enes <vitorenesduarte@gmail.com>").
@@ -54,18 +54,18 @@ new([]) ->
 %% @doc Mutate a `op_gset()'.
 -spec mutate(op_gset_op(), type:id(), op_gset()) ->
     {ok, op_gset()}.
-mutate({add, Element}, _, {?TYPE, GSet}) ->
-    {ok, {?TYPE, sets:add_element(Element, GSet)}}.
+mutate({add, Element}, _, {?TYPE, Set}) ->
+    {ok, {?TYPE, sets:add_element(Element, Set)}}.
 
 %% @doc Delta-mutate a `op_gset()'.
 -spec query(op_gset()) -> sets:set(element()).
-query({?TYPE, GSet}) ->
-    GSet.
+query({?TYPE, Set}) ->
+    Set.
 
 %% @doc Are two `op_gset()'s structurally equal?
 -spec equal(op_gset(), op_gset()) -> boolean().
-equal({?TYPE, GSet1}, {?TYPE, GSet2}) ->
-    sets_ext:equal(GSet1, GSet2).
+equal({?TYPE, Set1}, {?TYPE, Set2}) ->
+    sets_ext:equal(Set1, Set2).
 
 %% ===================================================================
 %% EUnit tests

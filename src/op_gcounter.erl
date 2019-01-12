@@ -53,18 +53,18 @@ new([]) ->
 %% @doc Mutate a `op_gcounter()'.
 -spec mutate(op_gcounter_op(), type:id(), op_gcounter()) ->
     {ok, op_gcounter()}.
-mutate(increment, _, {?TYPE, GCounter}) ->
-    {ok, {?TYPE, GCounter + 1}}.
+mutate(increment, _, {?TYPE, Counter}) ->
+    {ok, {?TYPE, Counter + 1}}.
 
 %% @doc Delta-mutate a `op_gcounter()'.
 -spec query(op_gcounter()) -> non_neg_integer().
-query({?TYPE, GCounter}) ->
-    GCounter.
+query({?TYPE, Counter}) ->
+    Counter.
 
 %% @doc Are two `op_gcounter()'s structurally equal?
 -spec equal(op_gcounter(), op_gcounter()) -> boolean().
-equal({?TYPE, GCounter1}, {?TYPE, GCounter2}) ->
-    GCounter1 == GCounter2.
+equal({?TYPE, Counter1}, {?TYPE, Counter2}) ->
+    Counter1 == Counter2.
 
 %% ===================================================================
 %% EUnit tests
