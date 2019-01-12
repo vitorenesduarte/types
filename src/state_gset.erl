@@ -51,8 +51,8 @@
 -export_type([state_gset/0, state_gset_op/0]).
 
 -opaque state_gset() :: {?TYPE, payload()}.
--type payload() :: sets:set(any()).
 -type element() :: term().
+-type payload() :: sets:set(element()).
 -type state_gset_op() :: {add, element()}.
 
 %% @doc Create a new, empty `state_gset()'
