@@ -42,7 +42,7 @@
 -type timestamp() :: non_neg_integer().
 -type value() :: term().
 -type op_lwwmap_op() :: {set, key(), timestamp(), value()} |
-[{set, key(), timestamp(), value()}].
+                        [{set, key(), timestamp(), value()}].
 
 %% @doc Create a new, empty `op_lwwmap()'
 -spec new() -> op_lwwmap().
