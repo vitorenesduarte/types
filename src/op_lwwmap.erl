@@ -32,7 +32,7 @@
 
 -export([new/0, new/1]).
 -export([mutate/3]).
--export([query/1, equal/2]).
+-export([query/1, query/2, equal/2]).
 
 -export_type([op_lwwmap/0, op_lwwmap_op/0]).
 
@@ -85,6 +85,15 @@ mutate(OpList, Id, Map) ->
 query({?TYPE, Map}) ->
     %% simply hide timestamps
     maps:map(fun(_, {_, V}) -> V end, Map).
+
+%% @doc Returns the value of the `op_lwwmap()', given a list
+%%      of extra arguments.
+-spec query(list(term()), op_lwwmap()) -> non_neg_integer().
+query([MoreRecent], {?TYPE, Map}) ->
+    Keys = lists:reverse(lists:sort(maps:keys(Map))),
+    TopKeys = lists:sublist(Keys, MoreRecent),
+    MapTop = maps:with(TopKeys, Map),
+    query({?TYPE, MapTop}).
 
 %% @doc Are two `op_lwwmap()'s structurally equal?
 -spec equal(op_lwwmap(), op_lwwmap()) -> boolean().
