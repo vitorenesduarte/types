@@ -201,7 +201,7 @@ crdt_size({op_lwwmap, CRDT}) ->
 
 %% @doc Compute the size of an operation.
 -spec op_size(term()) -> non_neg_integer().
-op_size(increment) -> 0;
+op_size(increment) -> 1;
 op_size({add, _}) -> 1;
 %% the following considers a key-value pair as 1
 %% which is what we're doing when saying the size of a lwwmap
