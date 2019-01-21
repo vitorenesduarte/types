@@ -83,7 +83,7 @@ delta_mutate(OpList, Actor, CRDT) ->
     {ok, Result}.
 
 %% @doc Returns the value of the `state_lwwmap()'.
--spec query(state_lwwmap()) -> non_neg_integer().
+-spec query(state_lwwmap()) -> maps:map(key(), value()).
 query({?TYPE, LWWMap}) ->
     %% simply hide timestamps
     maps:map(fun(_, {_, V}) -> V end, LWWMap).

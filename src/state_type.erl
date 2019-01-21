@@ -30,6 +30,7 @@
 -export([delta/2]).
 -export([extract_args/1]).
 -export([crdt_size/1,
+         op_size/1,
          term_size/1,
          term_byte_size/1,
          digest_size/1]).
@@ -190,7 +191,25 @@ crdt_size({?GCOUNTER_TYPE, CRDT}) ->
 crdt_size({?GSET_TYPE, CRDT}) ->
     sets:size(CRDT);
 crdt_size({?LWWMAP_TYPE, CRDT}) ->
+    maps:size(CRDT);
+crdt_size({op_gcounter, _}) ->
+    1;
+crdt_size({op_gset, CRDT}) ->
+    sets:size(CRDT);
+crdt_size({op_lwwmap, CRDT}) ->
     maps:size(CRDT).
+
+%% @doc Compute the size of an operation.
+-spec op_size(term()) -> non_neg_integer().
+op_size(increment) -> 1;
+op_size({add, _}) -> 1;
+%% the following considers a key-value pair as 1
+%% which is what we're doing when saying the size of a lwwmap
+%% is the size of the internal map
+op_size({set, _, _, _}) -> 1;
+op_size([H|T]) -> op_size(H) + op_size(T);
+op_size([]) -> 0.
+
 
 -spec term_size(crdt()) -> non_neg_integer().
 term_size({?GSET_TYPE, CRDT}) ->
